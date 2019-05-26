@@ -1,7 +1,9 @@
-from rpi_rf import RFDevice
 import logging
-from rf_data_parse import rf_data_parse
 import time
+
+from rpi_rf import RFDevice
+
+from rf_data_parse import rf_data_parse
 
 logger = logging.getLogger(__name__)
 
