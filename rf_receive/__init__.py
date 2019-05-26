@@ -17,6 +17,7 @@ class RfReceiver:
         self.rf_device.cleanup()
 
     def start_listening(self):
+        logger.info('Start listening...')
         self.rf_device.enable_rx()
         while True:
             if self.rf_device.rx_code_timestamp != self.timestamp:
