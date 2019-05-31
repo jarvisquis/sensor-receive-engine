@@ -12,6 +12,7 @@ class RfReceiver:
     def __init__(self, gpio_pin: int):
         self.rf_device = RFDevice(gpio_pin)
         self.timestamp = None
+        self.last_nonce = -1
 
     def destroy(self):
         self.rf_device.cleanup()
@@ -19,10 +20,21 @@ class RfReceiver:
     def start_listening(self):
         logger.info('Start listening...')
         self.rf_device.enable_rx()
+
+        nonce = -1
         while True:
             if self.rf_device.rx_code_timestamp != self.timestamp:
                 self.timestamp = self.rf_device.rx_code_timestamp
-                nonce, data_type, data = rf_data_parse.parse_rx_code(self.rf_device.rx_code)
+                try:
+                    nonce, data_type, data = rf_data_parse.parse_rx_code(self.rf_device.rx_code)
+                except AttributeError:
+                    logger.exception('Got wrong project code.')
+                    continue
+
+                if nonce == self.last_nonce:
+                    logger.debug('Received already duplicate message')
+                    logger.debug(f'rx_code: {self.rf_device.rx_code}')
+                    continue
 
                 logger.info(f'Received data')
                 logger.info(f'nonce: {nonce}')
