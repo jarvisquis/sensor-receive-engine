@@ -33,12 +33,12 @@ class RfReceiver:
 
                 if nonce == self.last_nonce:
                     logger.debug('Received already duplicate message')
-                    logger.debug(f'rx_code: {self.rf_device.rx_code}')
+                    logger.debug('rx_code:' + self.rf_device.rx_code)
                     continue
 
-                logger.info(f'Received data')
-                logger.info(f'nonce: {nonce}')
-                logger.info(f'data_type: {data_type}')
-                logger.info(f'data: {data}')
+                logger.info('Received data')
+                logger.info('nonce:' + nonce)
+                logger.info('data_type:' + data_type)
+                logger.info('data:' + data)
 
             time.sleep(0.1)

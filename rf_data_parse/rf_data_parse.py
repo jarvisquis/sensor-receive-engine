@@ -15,11 +15,11 @@ def __getattr__(name):
 
 def parse_rx_code(rx_code: int):
     if int(math.log10(rx_code)) + 1 != 9:
-        raise ValueError(f'Expected 9 digit rx_code. Got n digits: {int(math.log10(rx_code)) + 1}')
+        raise ValueError('Expected 9 digit rx_code. Got n digits:' + str(int(math.log10(rx_code)) + 1))
 
     project_code = int(rx_code / 1000000)
     if project_code != 444:
-        raise AttributeError(f'Unknown project code detected. Got: {int(rx_code / 1000000)}')
+        raise AttributeError('Unknown project code detected. Got:' + str(int(rx_code / 1000000)))
 
     transmission_related_field = rx_code % 444000000 % 100000
     nonce = int(transmission_related_field / 10000)
@@ -27,7 +27,7 @@ def parse_rx_code(rx_code: int):
     data_related_field = transmission_related_field % 10000
     data_type = int(data_related_field / 1000)
     if len([v for k, v in data_types.items() if v == data_type]) == 0:
-        raise TypeError(f'Unknown data type. Got data type: {data_type}')
+        raise TypeError('Unknown data type. Got data type:' + str(data_type))
 
     data = data_related_field % 1000
 
