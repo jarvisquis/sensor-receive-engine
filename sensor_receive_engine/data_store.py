@@ -40,7 +40,7 @@ def save(data: SensorData) -> None:
             ''', data.id, data.sensor_id, data.received_at,
                          data.sensor_type, data.sensor_value,
                          data.sensor_battery_level)
-    except sqlite3.Error as e:
+    except sqlite3.Error:
         logger.exception(f'Could not save sensor data.')
     finally:
         conn.close()
