@@ -4,7 +4,7 @@ import time
 
 from rpi_rf import RFDevice
 
-from sensor_receive_engine.rf_data_parse import parse_rx_code, get_data_type_string
+from sensor_receive_engine.data_parse import parse_rx_code, get_data_type_string
 
 logger = logging.getLogger(__name__)
 

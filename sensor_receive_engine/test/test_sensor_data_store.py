@@ -1,7 +1,7 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from sensor_receive_engine.sensor_data_store import SensorDataStore
-import datetime
+from unittest.mock import patch
+
+from sensor_receive_engine.db_communication import SensorDataStore
 
 
 class TestSensorDataStore(unittest.TestCase):

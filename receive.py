@@ -3,7 +3,7 @@ import signal
 import sys
 
 from sensor_receive_engine.rf_receive import RfReceiver
-from sensor_receive_engine.sensor_data_store import SensorDataStore
+from sensor_receive_engine.db_communication import SensorDataStore
 
 DB_HOST = 'ccloud'
 DB_DATABASE = 'sensor_data'
