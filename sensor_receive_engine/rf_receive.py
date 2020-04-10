@@ -1,19 +1,22 @@
+import datetime
+import hashlib
 import logging
 import sys
 import time
 
+import redis
 from rpi_rf import RFDevice
 
-from sensor_receive_engine.data_parse import parse_rx_code, get_data_type_string
+import sensor_receive_engine.data_storing as ds
+from sensor_receive_engine.data_parsing import parse_rx_code, get_data_type_string
 
 logger = logging.getLogger(__name__)
 
 
 class RfReceiver:
-    def __init__(self, gpio_pin: int, on_receive_callback):
+    def __init__(self, gpio_pin: int):
         self.rf_device = RFDevice(gpio_pin)
-        self.last_nonce = -1
-        self.on_receive_callback = on_receive_callback
+        self.redis = redis.Redis(host='localhost', port='6379', db=0)
 
     def destroy(self):
         logger.info('Caught terminate signal')
@@ -39,16 +42,20 @@ class RfReceiver:
                 except TypeError:
                     logger.debug('Got wrong dtype')
                     continue
-
-                if nonce == self.last_nonce:
+                hash_input = ''.join(map(str, [project_code, source_addr, nonce, data_type])).encode('utf-8')
+                redis_key = hashlib.md5(hash_input).hexdigest()
+                if self.redis.get(redis_key) is not None:
+                    self.redis.setex(redis_key, 30, '')
                     logger.debug('Received duplicate message')
                     logger.debug('rx_code: {}'.format(self.rf_device.rx_code))
                     continue
 
-                self.last_nonce = nonce
-
+                self.redis.setex(redis_key, 30, '')
                 logger.debug('Successfully received message')
                 logger.debug('rx_code: {}'.format(self.rf_device.rx_code))
-                self.on_receive_callback(project_code, source_addr, get_data_type_string(data_type), data)
+                sensor_data = ds.SensorData.create_from_raw_data(project_code, source_addr, datetime.datetime.utcnow(),
+                                                                 get_data_type_string(data_type), data)
+                ds.save(sensor_data)
+                self.redis.publish('sensor_events', sensor_data.to_json())
 
             time.sleep(0.1)
