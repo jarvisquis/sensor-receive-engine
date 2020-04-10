@@ -11,12 +11,15 @@ import sensor_receive_engine.data_storing as ds
 from sensor_receive_engine.data_parsing import parse_rx_code, get_data_type_string
 
 logger = logging.getLogger(__name__)
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+REDIS_DB = 0
 
 
 class RfReceiver:
     def __init__(self, gpio_pin: int):
         self.rf_device = RFDevice(gpio_pin)
-        self.redis = redis.Redis(host='localhost', port='6379', db=0)
+        self.redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 
     def destroy(self):
         logger.info('Caught terminate signal')
