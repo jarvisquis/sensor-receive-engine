@@ -1,6 +1,7 @@
 import datetime
 import hashlib
 import logging
+import sqlite3
 import sys
 import time
 
@@ -14,12 +15,14 @@ logger = logging.getLogger(__name__)
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 REDIS_DB = 0
+SQL_LITE_DB = 'sensor_data.db'
 
 
 class RfReceiver:
     def __init__(self, gpio_pin: int):
         self.rf_device = RFDevice(gpio_pin)
-        self.redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+        self.redis_conn = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+        self.sqlite_conn = sqlite3.connect(SQL_LITE_DB)
 
     def destroy(self):
         logger.info('Caught terminate signal')
@@ -30,7 +33,6 @@ class RfReceiver:
         logger.info('Start listening...')
         self.rf_device.enable_rx()
         timestamp = None
-        nonce = -1
         while True:
             if self.rf_device.rx_code_timestamp != timestamp:
                 timestamp = self.rf_device.rx_code_timestamp
@@ -47,18 +49,18 @@ class RfReceiver:
                     continue
                 hash_input = ''.join(map(str, [project_code, source_addr, nonce, data_type])).encode('utf-8')
                 redis_key = hashlib.md5(hash_input).hexdigest()
-                if self.redis.get(redis_key) is not None:
-                    self.redis.setex(redis_key, 30, '')
+                if self.redis_conn.get(redis_key) is not None:
+                    self.redis_conn.setex(redis_key, 30, '')
                     logger.debug('Received duplicate message')
                     logger.debug('rx_code: {}'.format(self.rf_device.rx_code))
                     continue
 
-                self.redis.setex(redis_key, 30, '')
+                self.redis_conn.setex(redis_key, 30, '')
                 logger.debug('Successfully received message')
                 logger.debug('rx_code: {}'.format(self.rf_device.rx_code))
-                sensor_data = ds.SensorData.create_from_raw_data(project_code, source_addr, datetime.datetime.utcnow(),
+                sensor_data = ds.SensorData.create_from_raw_data(project_code, source_addr, datetime.datetime.now(),
                                                                  get_data_type_string(data_type), data)
-                ds.save(sensor_data)
-                self.redis.publish('sensor_events', sensor_data.to_json())
+                ds.save(sensor_data, self.sqlite_conn)
+                self.redis_conn.publish('sensor_events', sensor_data.to_json())
 
             time.sleep(0.1)
