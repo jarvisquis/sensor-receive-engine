@@ -7,6 +7,8 @@ authors = ["Christian Schrader <christian.s1989@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 redis = "^3.4.1"
+rpi-rf = "^0.9.7"
+ujson = "^2.0.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.1"
