@@ -15,18 +15,17 @@ logger = logging.getLogger(__name__)
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 REDIS_DB = 0
-SQL_LITE_DB = 'sensor_data.db'
 
 
 class RfReceiver:
     def __init__(self, gpio_pin: int):
         self.rf_device = RFDevice(gpio_pin)
         self.redis_conn = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-        self.sqlite_conn = sqlite3.connect(SQL_LITE_DB)
 
     def destroy(self):
         logger.info('Caught terminate signal')
         self.rf_device.cleanup()
+        self.redis_conn.close()
         sys.exit(0)
 
     def start_listening(self):
@@ -60,7 +59,8 @@ class RfReceiver:
                 logger.debug('rx_code: {}'.format(self.rf_device.rx_code))
                 sensor_data = ds.SensorData.create_from_raw_data(project_code, source_addr, datetime.datetime.now(),
                                                                  get_data_type_string(data_type), data)
-                ds.save(sensor_data, self.sqlite_conn)
+                data_storer = ds.SensorDataStorer()
+                data_storer.save(sensor_data)
                 self.redis_conn.publish('sensor_events', sensor_data.to_json())
 
             time.sleep(0.1)

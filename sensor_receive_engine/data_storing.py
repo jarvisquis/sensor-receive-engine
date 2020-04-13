@@ -1,14 +1,27 @@
 import logging
-import sqlite3
+import pathlib
+from contextlib import contextmanager
 from datetime import datetime
 from hashlib import md5
+from typing import Optional
 
 import ujson as json
+from sqlalchemy import create_engine, Column, String, DateTime, Integer, Float
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 logger = logging.getLogger(__name__)
+Base = declarative_base()
 
 
-class SensorData:
+class SensorData(Base):
+    __tablename__ = 'sensor_data'
+    d_id = Column(String, primary_key=True)
+    sensor_id = Column(Integer)
+    received_at = Column(DateTime)
+    d_type = Column(String)
+    d_value = Column(Float)
+
     def __init__(self, d_id: str, sensor_id: int, received_at: datetime, d_type: str, d_value: float):
         self.d_id = d_id
         self.sensor_id = sensor_id
@@ -59,45 +72,36 @@ class SensorData:
         ).encode('utf-8')).hexdigest()
 
 
-def save(data: SensorData, conn) -> None:
-    try:
-        with conn:
-            conn.execute('''
-            INSERT INTO sensor_data(
-            id,
-            sensor_id,
-            received_at,
-            d_type,
-            d_value,
-            )
-            VALUES (?,?,?,?,?)
-            ''', (data.d_id, data.sensor_id, data.received_at,
-                  data.d_type, data.d_value))
-    except sqlite3.Error:
-        logger.exception(f'Could not save sensor data.')
+class SensorDataStorer:
+    def __init__(self):
+        with open(pathlib.Path('~/.pgpass').expanduser(), 'r') as conn_config:
+            host, port, database, user, password = conn_config.read().replace('\n', '').split(':')
+        engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{database}')
+        Base.metadata.create_all(engine)
+        self.Session = sessionmaker(bind=engine)
 
+    def save(self, data: SensorData) -> None:
+        with self.session_scope() as session:
+            session.add(data)
 
-def get(sensor_data_id: str, conn):
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT 
-        id,
-        sensor_id,
-        received_at,
-        d_type,
-        d_value
-        FROM
-        sensor_data WHERE id = ?''', (sensor_data_id,))
+    def get(self, sensor_data_id: str) -> Optional[SensorData]:
+        with self.session_scope() as session:
+            sensor_data = session.query(SensorData).filter(SensorData.d_id == sensor_data_id).first()
+            session.expunge_all()
 
-    sensor_data = None
-    for row in cursor:
-        sensor_data = SensorData(row['id'],
-                                 row['sensor_id'],
-                                 row['received_at'],
-                                 row['d_type'],
-                                 row['d_value'])
+            if sensor_data is None:
+                logger.error(f'Could not get sensor data with id {sensor_data_id}.')
+            return sensor_data
 
-    if sensor_data is None:
-        logger.error(f'Could not get sensor data with id {sensor_data_id}.')
-    return sensor_data
+    @contextmanager
+    def session_scope(self):
+        """Provide a transactional scope around a series of operations."""
+        session = self.Session()
+        try:
+            yield session
+            session.commit()
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
