@@ -4,7 +4,7 @@ from datetime import datetime
 from sensor_receive_engine.src.persistence import SensorData
 
 
-class TestDataStoring(unittest.TestCase):
+class TestSensorData(unittest.TestCase):
     def test_sensor_data(self):
         project_id = 1
         source_addr = 2
