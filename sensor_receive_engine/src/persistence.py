@@ -1,12 +1,11 @@
 import logging
-import pathlib
 from contextlib import contextmanager
 from datetime import datetime
 from hashlib import md5
 from typing import Optional
 
 import ujson as json
-from sqlalchemy import create_engine, Column, String, DateTime, Integer, Float
+from sqlalchemy import Column, String, DateTime, Integer, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -73,10 +72,7 @@ class SensorData(Base):
 
 
 class SensorDataStorer:
-    def __init__(self):
-        with open(pathlib.Path('~/.pgpass').expanduser(), 'r') as conn_config:
-            host, port, database, user, password = conn_config.read().replace('\n', '').split(':')
-        engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{database}')
+    def __init__(self, engine):
         Base.metadata.create_all(engine)
         self.Session = sessionmaker(bind=engine)
 

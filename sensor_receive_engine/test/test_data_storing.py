@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 
-from sensor_receive_engine.data_storing import SensorData
+from sensor_receive_engine.src.persistence import SensorData
 
 
 class TestDataStoring(unittest.TestCase):
