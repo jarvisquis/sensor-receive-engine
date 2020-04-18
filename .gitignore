@@ -1,5 +1,5 @@
 .idea
 __pycache__
 .venv
-poetry.lock
-sensor_receive_engine.conf
+sensor_receive_engine/poetry.lock
+sensor_receive_engine/sensor_receive_engine.conf

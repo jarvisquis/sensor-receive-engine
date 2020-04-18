@@ -1,15 +1,16 @@
 import unittest
-from sensor_receive_engine.src import parsing
+
+from src import parsing
 
 
 class TestRfDataParse(unittest.TestCase):
     def test_parse_rx_code_return(self):
-        project_code = '4'
-        source_address = '2'
-        nonce = '1'
-        data_type = '1'
-        data_value = '24.5'
-        rx_code = int(project_code + source_address + nonce + data_type + data_value.replace('.', ''))
+        project_code = "4"
+        source_address = "2"
+        nonce = "1"
+        data_type = "1"
+        data_value = "24.5"
+        rx_code = int(project_code + source_address + nonce + data_type + data_value.replace(".", ""))
         result = parsing.parse_rx_code(rx_code)
         self.assertIsInstance(result, tuple)
         self.assertEqual(5, len(result), "Expected 5 return values in tuple")

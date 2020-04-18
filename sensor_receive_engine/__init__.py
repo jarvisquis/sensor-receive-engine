@@ -1,2 +1,1 @@
-from .src import persistence
-from .src import parsing
+from .src import parsing, persistence
