@@ -1,0 +1,6 @@
+psycopg2==2.8.5
+redis==3.4.1
+rpi-rf==0.9.7
+rpi.gpio==0.7.0
+sqlalchemy==1.3.16
+ujson==2.0.3

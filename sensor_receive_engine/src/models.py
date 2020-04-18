@@ -4,7 +4,7 @@ from hashlib import md5
 import ujson as json
 from sqlalchemy import Column, DateTime, Float, Integer, String
 
-from src.persistence import Base
+from src import Base
 
 
 class SensorData(Base):

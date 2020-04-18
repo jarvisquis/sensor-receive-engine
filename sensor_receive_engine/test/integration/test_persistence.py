@@ -12,7 +12,7 @@ from src.persistence import SensorDataStorer
 class TestSensorStorer(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cmd_up = "docker-compose -f docker-compose.test.integ.persistence.yml up -d"
+        cmd_up = "docker-compose -f docker-compose.yml up -d postgres"
         subprocess.run(cmd_up.split(" "))
         print("Waiting for services to start...")
         time.sleep(5)
@@ -31,7 +31,7 @@ class TestSensorStorer(unittest.TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         print("Shutting down services...")
-        cmd_down = "docker-compose -f docker-compose.test.integ.persistence.yml down"
+        cmd_down = "docker-compose -f docker-compose.yml down"
         subprocess.run(cmd_down.split(" "))
 
     def setUp(self) -> None:

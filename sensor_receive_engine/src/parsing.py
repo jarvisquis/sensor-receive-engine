@@ -8,7 +8,11 @@ def __getattr__(name):
         return data_types[name]
 
 
-def parse_rx_code(rx_code: int):
+def parse_rx_code(
+    rx_code: int,
+) -> Tuple[
+    int, int, int, int,
+]:
     if int(math.log10(rx_code)) + 1 != 7:
         raise ValueError("Expected 7 digit rx_code. Got n digits:" + str(int(math.log10(rx_code)) + 1))
 

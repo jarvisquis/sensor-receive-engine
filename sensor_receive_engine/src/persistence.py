@@ -5,13 +5,12 @@ import logging
 from contextlib import contextmanager
 from typing import Optional
 
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from src import Base
 from src.models import SensorData
 
 logger = logging.getLogger(__name__)
-Base = declarative_base()
 
 
 class SensorDataStorer:
