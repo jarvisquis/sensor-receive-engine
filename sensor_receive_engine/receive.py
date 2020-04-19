@@ -7,9 +7,11 @@ import redis
 from rpi_rf import RFDevice
 from sqlalchemy import create_engine
 
-from src import rf_receiver
+from src import receiver
 
 logger = logging.getLogger(__name__)
+CONFIG = configparser.ConfigParser()
+CONFIG.read("sensor_receive_engine.conf")
 
 
 def setup_logger():
@@ -34,8 +36,6 @@ def on_receive_sigint(x, y):
 
 if __name__ == "__main__":
     setup_logger()
-    CONFIG = configparser.ConfigParser()
-    CONFIG.read("sensor_receive_engine.conf")
 
     engine = create_engine(
         f"postgresql://{CONFIG['postgresql']['user']}:{CONFIG['postgresql']['password']}"
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     redis_conn = redis.Redis(host=CONFIG["redis"]["host"], port=CONFIG["redis"]["port"], db=CONFIG["redis"]["database"])
     rf_device = RFDevice(CONFIG["rf"]["gpio_pin"])
 
-    rf_receiver = rf_receiver.RfReceiver(rf_device, engine, redis_conn)
+    rf_receiver = receiver.SensorDataReceiver(rf_device, engine, redis_conn)
     signal.signal(signal.SIGINT, on_receive_sigint)
 
     rf_receiver.start_listening()

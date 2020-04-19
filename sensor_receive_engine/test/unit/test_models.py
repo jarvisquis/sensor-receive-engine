@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 
-from src.models import SensorData
+from src.model import SensorData
 
 
 class TestSensorData(unittest.TestCase):
