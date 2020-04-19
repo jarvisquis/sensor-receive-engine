@@ -34,16 +34,16 @@ def on_receive_sigint(x, y):
 
 if __name__ == "__main__":
     setup_logger()
-    config = configparser.ConfigParser()
-    config.read("sensor_receive_engine.conf")
+    CONFIG = configparser.ConfigParser()
+    CONFIG.read("sensor_receive_engine.conf")
 
     engine = create_engine(
-        f"postgresql://{config['postgresql']['user']}:{config['postgresql']['password']}"
-        f"@{config['postgresql']['host']}:{config['postgresql']['port']}"
-        f"/{config['postgresql']['database']}"
+        f"postgresql://{CONFIG['postgresql']['user']}:{CONFIG['postgresql']['password']}"
+        f"@{CONFIG['postgresql']['host']}:{CONFIG['postgresql']['port']}"
+        f"/{CONFIG['postgresql']['database']}"
     )
-    redis_conn = redis.Redis(host=config["redis"]["host"], port=config["redis"]["port"], db=config["redis"]["database"])
-    rf_device = RFDevice(config["rf"]["gpio_pin"])
+    redis_conn = redis.Redis(host=CONFIG["redis"]["host"], port=CONFIG["redis"]["port"], db=CONFIG["redis"]["database"])
+    rf_device = RFDevice(CONFIG["rf"]["gpio_pin"])
 
     rf_receiver = rf_receiver.RfReceiver(rf_device, engine, redis_conn)
     signal.signal(signal.SIGINT, on_receive_sigint)

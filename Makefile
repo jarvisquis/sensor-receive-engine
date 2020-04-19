@@ -4,7 +4,7 @@ export_requirements:
 
 .PHONY: lint
 lint:
-	find sensor_receive_engine -type f -name "*.py" | xargs pylint
+	find sensor_receive_engine -type f -name "*.py" | xargs pylint --rcfile=sensor_receive_engine/.pylintrc
 
 .PHONY: fmt
 fmt:
