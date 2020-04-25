@@ -7,8 +7,10 @@ from pathlib import Path
 from redis import Redis
 from sqlalchemy import create_engine, text
 
-from src.model import SensorData, SensorDataType, SensorRawData
-from src.persistence import SensorDataCache, SensorDataStorage
+from sensor_receive_engine.model import (SensorData, SensorDataType,
+                                         SensorRawData)
+from sensor_receive_engine.persistence import (SensorDataCache,
+                                               SensorDataStorage)
 
 SCRIPT_DIR = Path(__file__).parent.absolute()
 SERVICE_WAITING_TIME = 5

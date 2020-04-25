@@ -1,6 +1,6 @@
 import unittest
 
-from src import error, model, parse
+from sensor_receive_engine import error, model, parse
 
 
 class TestRfDataParse(unittest.TestCase):

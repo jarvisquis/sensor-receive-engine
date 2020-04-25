@@ -1,7 +1,8 @@
 import unittest
 from datetime import datetime
 
-from src.model import SensorData, SensorDataType, SensorRawData
+from sensor_receive_engine.model import (SensorData, SensorDataType,
+                                         SensorRawData)
 
 
 class TestSensorData(unittest.TestCase):

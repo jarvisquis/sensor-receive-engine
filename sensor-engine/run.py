@@ -9,7 +9,7 @@ from rpi_rf import RFDevice
 from sqlalchemy import create_engine
 
 from config import Configuration
-from src import receiver
+from sensor_receive_engine import receiver
 
 logger = logging.getLogger(__name__)
 CONFIG = dacite.from_dict(data_class=Configuration, data=json.load("config.json"))

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "sensor-receive-engine"
+name = "sensor_receive-engine"
 version = "0.1.0"
 description = ""
 authors = ["Christian Schrader <christian.s1989@gmail.com>"]
