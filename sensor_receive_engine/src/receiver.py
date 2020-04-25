@@ -1,13 +1,15 @@
-import datetime
+"""
+Handles rx receiving, caching and storage
+"""
 import logging
 import time
 
 from redis import Redis
 from sqlalchemy.engine import Engine
 
-from . import parse
+from . import error, parse
 from .model import SensorData
-from .persistence import SensorDataStorage, SensorDataCache
+from .persistence import SensorDataCache, SensorDataStorage
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 class SensorDataReceiver:
     def __init__(self, rf_device, db_engine: Engine, redis_conn: Redis):
         self.rf_device = rf_device
-        self.ds = SensorDataStorage(db_engine)
+        self.data_storage = SensorDataStorage(db_engine)
         self.cache = SensorDataCache(redis_conn)
 
     def start_listening(self):
@@ -26,30 +28,28 @@ class SensorDataReceiver:
             if self.rf_device.rx_code_timestamp != timestamp:
                 timestamp = self.rf_device.rx_code_timestamp
                 try:
-                    project_code, source_addr, nonce, data_type, data = parse.parse_rx_code(self.rf_device.rx_code)
-                except AttributeError:
-                    logger.debug("Got wrong project code.")
+                    sensor_raw_data = parse.parse_rx_code(self.rf_device.rx_code)
+                except error.UnknownProjectCodeError:
+                    logger.exception("Got wrong project code.")
                     continue
-                except ValueError:
-                    logger.debug("Got wrong digit count")
+                except error.RXCodeError:
+                    logger.exception("Got wrong digit count")
                     continue
-                except TypeError:
-                    logger.debug("Got wrong dtype")
+                except error.UnknownDataTypeError:
+                    logger.exception("Got wrong dtype")
                     continue
 
-                cache_result = self.cache.cache_data(project_code, source_addr, nonce, data_type)
+                cache_result = self.cache.cache_data(sensor_raw_data)
                 if not cache_result:
                     logger.debug("Received duplicate message")
-                    logger.debug("rx_code: {}".format(self.rf_device.rx_code))
+                    logger.debug(f"rx_code: {self.rf_device.rx_code}")
                     continue
 
                 logger.debug("Successfully received message")
-                logger.debug("rx_code: {}".format(self.rf_device.rx_code))
-                sensor_data = SensorData.create_from_raw_data(
-                    project_code, source_addr, datetime.datetime.now(), parse.get_data_type_string(data_type), data
-                )
+                logger.debug(f"rx_code: {self.rf_device.rx_code}")
+                sensor_data = SensorData.from_sensor_raw_data(sensor_raw_data)
 
-                self.ds.save(sensor_data)
+                self.data_storage.save(sensor_data)
                 self.cache.publish_data(sensor_data)
 
             time.sleep(0.1)

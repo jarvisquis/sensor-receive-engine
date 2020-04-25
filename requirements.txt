@@ -1,3 +1,0 @@
-
-[RuntimeError]
-Poetry could not find a pyproject.toml file in /home/chris/Development/repositories/sensor-receive-engine or its parents

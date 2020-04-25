@@ -1,17 +1,18 @@
-import configparser
 import logging
 import signal
 import sys
 
+import dacite
 import redis
+import ujson as json
 from rpi_rf import RFDevice
 from sqlalchemy import create_engine
 
+from config import Configuration
 from src import receiver
 
 logger = logging.getLogger(__name__)
-CONFIG = configparser.ConfigParser()
-CONFIG.read("sensor_receive_engine.conf")
+CONFIG = dacite.from_dict(data_class=Configuration, data=json.load("config.json"))
 
 
 def setup_logger():
@@ -34,16 +35,17 @@ def on_receive_sigint(x, y):
     sys.exit(0)
 
 
+def _build_engine_url():
+    return (
+        f"postgresql://{CONFIG.postgres.user}@{CONFIG.postgres.host}:{CONFIG.postgres.port}/{CONFIG.postgres.database}"
+    )
+
+
 if __name__ == "__main__":
     setup_logger()
-
-    engine = create_engine(
-        f"postgresql://{CONFIG['postgresql']['user']}:{CONFIG['postgresql']['password']}"
-        f"@{CONFIG['postgresql']['host']}:{CONFIG['postgresql']['port']}"
-        f"/{CONFIG['postgresql']['database']}"
-    )
-    redis_conn = redis.Redis(host=CONFIG["redis"]["host"], port=CONFIG["redis"]["port"], db=CONFIG["redis"]["database"])
-    rf_device = RFDevice(CONFIG["rf"]["gpio_pin"])
+    engine = create_engine(_build_engine_url())
+    redis_conn = redis.Redis(host=CONFIG.redis.host, port=CONFIG.redis.port, db=CONFIG.redis.database)
+    rf_device = RFDevice(CONFIG.rf.gpio_pin)
 
     rf_receiver = receiver.SensorDataReceiver(rf_device, engine, redis_conn)
     signal.signal(signal.SIGINT, on_receive_sigint)

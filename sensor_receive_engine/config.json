@@ -1,0 +1,17 @@
+{
+  "redis": {
+    "host": "localhost",
+    "user": "sensor",
+    "port": 6379,
+    "database": 0
+  },
+  "postgres": {
+    "host": "localhost",
+    "user": "sensor",
+    "port": 5432,
+    "database": "sensor"
+  },
+  "rf": {
+    "gpio_pint": 27
+  }
+}

@@ -2,17 +2,14 @@
 This module handles persistence of sensor data to a postgres db
 """
 import hashlib
-import logging
 from contextlib import contextmanager
 from typing import Optional
 
 from redis import Redis
 from sqlalchemy.orm import sessionmaker
 
-from src import Base
-from src.model import SensorData
-
-logger = logging.getLogger(__name__)
+from . import Base, error
+from .model import SensorData, SensorRawData
 
 
 class SensorDataStorage:
@@ -26,11 +23,11 @@ class SensorDataStorage:
 
     def get(self, sensor_data_id: str) -> Optional[SensorData]:
         with self.session_scope() as session:
-            sensor_data = session.query(SensorData).filter(SensorData.d_id == sensor_data_id).first()
+            sensor_data = session.query(SensorData).filter(SensorData.data_id == sensor_data_id).first()
             session.expunge_all()
 
             if sensor_data is None:
-                logger.error(f"Could not get sensor data with id {sensor_data_id}.")
+                raise error.SensorDataNotFoundError(f"Could not get sensor data with id {sensor_data_id}.")
             return sensor_data
 
     @contextmanager
@@ -51,8 +48,10 @@ class SensorDataCache:
     def __init__(self, redis_conn: Redis):
         self.redis_conn = redis_conn
 
-    def cache_data(self, project_code, source_addr, nonce, data_type) -> bool:
-        redis_key = self._hash_input(data_type, nonce, project_code, source_addr)
+    def cache_data(self, sensor_raw_data: SensorRawData) -> bool:
+        redis_key = self._hash_input(
+            sensor_raw_data.data_type, sensor_raw_data.nonce, sensor_raw_data.project_code, sensor_raw_data.source_addr
+        )
         data_is_uniq = self.redis_conn.get(redis_key) is None
         self.redis_conn.setex(redis_key, 30, "test")
         return data_is_uniq

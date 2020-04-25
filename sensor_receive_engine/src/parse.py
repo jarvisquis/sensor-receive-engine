@@ -1,22 +1,20 @@
+"""
+Low-level RX parsing
+"""
 import math
-from typing import Optional, Tuple
+from datetime import datetime
 
-data_types = dict(TEMP=1, HUM=2, HYGRO=3, VOLT=4, ERROR=9)
-
-
-def __getattr__(name):
-    if name in data_types:
-        return data_types[name]
-    return None
+from . import error
+from .model import SensorDataType, SensorRawData
 
 
-def parse_rx_code(rx_code: int,) -> Tuple[int, int, int, int, int]:
+def parse_rx_code(rx_code: int,) -> SensorRawData:
     if int(math.log10(rx_code)) + 1 != 7:
-        raise ValueError(f"Expected 7 digit rx_code. Got n digits: {str(int(math.log10(rx_code)) + 1)}")
+        raise error.RXCodeError(f"Expected 7 digit rx_code. Got n digits: {str(int(math.log10(rx_code)) + 1)}")
 
     project_code = int(rx_code / 1000000)
     if project_code not in [4, 5]:
-        raise AttributeError(f"Unknown project code detected. Got: {str(int(rx_code / 1000000))}")
+        raise error.UnknownProjectCodeError(f"Unknown project code detected. Got: {str(int(rx_code / 1000000))}")
 
     source_addr = int((rx_code % 1000000) / 100000)
 
@@ -24,20 +22,21 @@ def parse_rx_code(rx_code: int,) -> Tuple[int, int, int, int, int]:
     nonce = int(transmission_related_field / 10000)
 
     data_related_field = transmission_related_field % 10000
-    data_type = int(data_related_field / 1000)
-    if len([v for k, v in data_types.items() if v == data_type]) == 0:
-        raise TypeError(f"Unknown data type. Got data type: {str(data_type)}")
+    try:
+        data_type = SensorDataType(int(data_related_field / 1000))
+    except ValueError:
+        raise error.UnknownDataTypeError(f"Unknown data type. Got data type: {int(data_related_field / 1000)}")
 
     data = data_related_field % 1000
 
-    if data_type in [data_types["TEMP"], data_types["HUM"], data_types["VOLT"]]:
+    if data_type in [SensorDataType.TEMP, SensorDataType.HUM, SensorDataType.VOLT]:
         data = data / 10
 
-    return project_code, source_addr, nonce, data_type, data
-
-
-def get_data_type_string(data_type_int: int) -> Optional[str]:
-    for data_type, int_repr in data_types.items():
-        if int_repr == data_type_int:
-            return data_type
-    return None
+    return SensorRawData(
+        project_code=project_code,
+        source_addr=source_addr,
+        nonce=nonce,
+        data_type=data_type,
+        data_value=data,
+        received_at=datetime.utcnow(),
+    )
