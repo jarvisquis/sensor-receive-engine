@@ -19,12 +19,14 @@ class SensorDataReceiver:
         self.rf_device = rf_device
         self.data_storage = SensorDataStorage(db_engine)
         self.cache = SensorDataCache(redis_conn)
+        self.shutdown_wanted = False
 
     def start_listening(self):
         logger.info("Start listening...")
         self.rf_device.enable_rx()
         timestamp = None
-        while True:
+        self.shutdown_wanted = False
+        while not self.shutdown_wanted:
             if self.rf_device.rx_code_timestamp != timestamp:
                 timestamp = self.rf_device.rx_code_timestamp
                 try:
@@ -53,3 +55,7 @@ class SensorDataReceiver:
                 self.cache.publish_data(sensor_data)
 
             time.sleep(0.1)
+
+    def stop_listening(self):
+        logger.info("Stop Listening...")
+        self.shutdown_wanted = True

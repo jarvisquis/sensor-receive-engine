@@ -29,6 +29,7 @@ def setup_logger():
 
 def on_receive_sigint(x, y):
     logger.info("Caught sigint. Stopping receive...")
+    rf_receiver.start_listening()
     rf_device.cleanup()
     redis_conn.close()
     logger.info("Clean up complete")

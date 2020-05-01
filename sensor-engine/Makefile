@@ -4,7 +4,7 @@ export_requirements:
 
 .PHONY: lint
 lint:
-	find . -type f -name "*.py" | xargs pylint --rcfile=sensor-engine/.pylintrc
+	find . -type f -name "*.py" | xargs pylint --rcfile=./.pylintrc
 
 .PHONY: fmt
 fmt:
