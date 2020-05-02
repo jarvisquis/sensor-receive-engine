@@ -4,10 +4,12 @@ Handles rx receiving, caching and storage
 import logging
 import time
 
+import rpi_rf
 from redis import Redis
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import create_engine
 
 from . import error, parse
+from .config import PostgresConfig, RedisConfig, RFConfig
 from .model import SensorData
 from .persistence import SensorDataCache, SensorDataStorage
 
@@ -15,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 class SensorDataReceiver:
-    def __init__(self, rf_device, db_engine: Engine, redis_conn: Redis):
-        self.rf_device = rf_device
-        self.data_storage = SensorDataStorage(db_engine)
-        self.cache = SensorDataCache(redis_conn)
+    def __init__(self, rf_config: RFConfig, db_config: PostgresConfig, redis_config: RedisConfig):
+        self.rf_device = rpi_rf.RFDevice(gpio=rf_config.gpio_pin)
+        self.data_storage = SensorDataStorage(create_engine(db_config.engine_url))
+        self.cache = SensorDataCache(Redis(host=redis_config.host, port=redis_config.port, db=redis_config.database))
         self.shutdown_wanted = False
 
     def start_listening(self):
@@ -59,3 +61,6 @@ class SensorDataReceiver:
     def stop_listening(self):
         logger.info("Stop Listening...")
         self.shutdown_wanted = True
+        self.rf_device.cleanup()
+        self.data_storage.close()
+        self.cache.close()

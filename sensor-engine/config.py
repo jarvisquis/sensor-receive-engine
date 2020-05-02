@@ -3,26 +3,7 @@ Configuration holder
 """
 from dataclasses import dataclass
 
-
-@dataclass
-class RedisConfig:
-    user: str
-    host: str
-    port: int
-    database: int
-
-
-@dataclass
-class PostgresConfig:
-    user: str
-    host: str
-    port: int
-    database: str
-
-
-@dataclass
-class RFConfig:
-    gpio_pin: int
+from sensor_receive_engine.config import PostgresConfig, RedisConfig, RFConfig
 
 
 @dataclass

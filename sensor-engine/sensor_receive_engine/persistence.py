@@ -30,6 +30,9 @@ class SensorDataStorage:
                 raise error.SensorDataNotFoundError(f"Could not get sensor data with id {sensor_data_id}.")
             return sensor_data
 
+    def close(self):
+        pass
+
     @contextmanager
     def session_scope(self):
         """Provide a transactional scope around a series of operations."""
@@ -58,6 +61,9 @@ class SensorDataCache:
 
     def publish_data(self, sensor_data: SensorData):
         self.redis_conn.publish("sensor_events", sensor_data.to_json())
+
+    def close(self):
+        self.redis_conn.close()
 
     @staticmethod
     def _hash_input(*args):

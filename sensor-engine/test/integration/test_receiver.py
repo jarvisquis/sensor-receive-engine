@@ -1,14 +1,15 @@
 import logging
 import subprocess
+import sys
 import threading
 import unittest
 from pathlib import Path
 from time import sleep
 from unittest import mock
-import sys
-from redis import Redis
-from sqlalchemy import create_engine
 
+from sensor_receive_engine.config import RedisConfig, PostgresConfig, RFConfig
+
+sys.modules['rpi_rf'] = mock.MagicMock()
 from sensor_receive_engine.receiver import SensorDataReceiver
 
 SCRIPT_DIR = Path(__file__).parent.absolute()
@@ -30,27 +31,109 @@ def tearDownModule():
 
 
 class TestSensorDataReceiver(unittest.TestCase):
-    def test(self):
-        mock_rf_device = mock.MagicMock()
-        mock_rf_device.rx_code_timestamp = None
-        mock_rf_device.enable_rx.return_value = True
-        mock_rf_device.rx_code = 123
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.pg_config = PostgresConfig(user='postgres',
+                                       host='localhost',
+                                       port=5432,
+                                       database='postgres',
+                                       password='test')
 
-        db_engine = create_engine(f"postgresql://postgres:test@localhost:5432/postgres")
-        redis_conn = Redis(host="localhost", port=6379, db=0)
-        receiver = SensorDataReceiver(rf_device=mock_rf_device, db_engine=db_engine, redis_conn=redis_conn)
-        receiver_thread = threading.Thread(target=receiver.start_listening)
+        cls.redis_config = RedisConfig(user='redis', host='localhost', port=6379, database=0)
+        cls.rf_config = RFConfig(gpio_pin=27)
+        cls.receiver = SensorDataReceiver(rf_config=cls.rf_config,
+                                          db_config=cls.pg_config,
+                                          redis_config=cls.redis_config)
 
-        receiver_thread.start()
+    def test_receive_valid_message(self):
+        with self.assertLogs(level=logging.DEBUG) as log_cm:
+            receiver = self.receiver
+            receiver.rf_device.rx_code_timestamp = None
+            receiver.rf_device.enable_rx.return_value = True
+            receiver.rx_code = 123
 
-        sleep(2)
-        mock_rf_device.rx_code_timestamp = 1
-        mock_rf_device.rx_code = 4111123
-        sleep(2)
-        receiver.stop_listening()
-        receiver_thread.join()
+            receiver_thread = threading.Thread(target=receiver.start_listening)
+
+            receiver_thread.start()
+
+            receiver.rf_device.rx_code_timestamp = 1
+            receiver.rf_device.rx_code = 4111123
+
+            sleep(2)
+            receiver.stop_listening()
+
+            receiver_thread.join()
+        self.assertEqual(
+            log_cm.output,
+            [
+                "INFO:sensor_receive_engine.receiver:Start listening...",
+                "DEBUG:sensor_receive_engine.receiver:Successfully received message",
+                "DEBUG:sensor_receive_engine.receiver:rx_code: 4111123",
+                "INFO:sensor_receive_engine.receiver:Stop Listening...",
+            ],
+        )
+
+    def test_duplicate_message(self):
+        with self.assertLogs(level=logging.DEBUG) as log_cm:
+            receiver = self.receiver
+            receiver.rf_device.rx_code_timestamp = None
+            receiver.rf_device.enable_rx.return_value = True
+            receiver.rx_code = 123
+
+            receiver_thread = threading.Thread(target=receiver.start_listening)
+
+            receiver_thread.start()
+
+            receiver.rf_device.rx_code_timestamp = 1
+            receiver.rf_device.rx_code = 4111999
+            sleep(2)
+            receiver.rf_device.rx_code_timestamp = 2
+            receiver.rf_device.rx_code = 4111999
+
+            sleep(2)
+            receiver.stop_listening()
+
+            receiver_thread.join()
+        self.assertEqual(
+            log_cm.output,
+            [
+                "INFO:sensor_receive_engine.receiver:Start listening...",
+                "DEBUG:sensor_receive_engine.receiver:Successfully received message",
+                "DEBUG:sensor_receive_engine.receiver:rx_code: 4111999",
+                "DEBUG:sensor_receive_engine.receiver:Received duplicate message",
+                "DEBUG:sensor_receive_engine.receiver:rx_code: 4111999",
+                "INFO:sensor_receive_engine.receiver:Stop Listening...",
+            ],
+        )
+
+    def test_invalidate_message(self):
+        with self.assertLogs(level=logging.DEBUG) as log_cm:
+            receiver = self.receiver
+            receiver.rf_device.rx_code_timestamp = None
+            receiver.rf_device.enable_rx.return_value = True
+            receiver.rx_code = 123
+
+            receiver_thread = threading.Thread(target=receiver.start_listening)
+
+            receiver_thread.start()
+
+            receiver.rf_device.rx_code_timestamp = 1
+            receiver.rf_device.rx_code = 4111
+
+            sleep(2)
+            receiver.stop_listening()
+
+            receiver_thread.join()
+        self.assertEqual(
+            log_cm.output,
+            [
+                "INFO:sensor_receive_engine.receiver:Start listening...",
+                "DEBUG:sensor_receive_engine.receiver:Got wrong digit count",
+                "INFO:sensor_receive_engine.receiver:Stop Listening...",
+            ],
+        )
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG, format='%(name)s %(levelname)s %(message)s')
+    logging.basicConfig(level=logging.DEBUG, format="%(name)s %(levelname)s %(message)s")
     unittest.main()
